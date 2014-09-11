@@ -1,0 +1,17 @@
+{
+  "spotify": {
+    "username": "Spotify Username",
+    "password": "Spotify Password",
+    "playlists": {
+      "default": "spotify:user:crispymtn:playlist:1xUTFaq10nzODhwkwLMo2l",
+      "metal": "spotify:user:crispymtn:playlist:6IkIC1Rq6bMkhsO0sj9GGs",
+      "hiphop": "spotify:user:crispymtn:playlist:71SBbMfSyMHRAIxl8fKEbI"
+    }
+  },
+  "auth": {
+    "tokens": [
+      "slack-token-one",
+      "slack-token-two"
+    ]
+  }
+}
