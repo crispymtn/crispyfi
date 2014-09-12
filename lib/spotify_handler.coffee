@@ -2,6 +2,8 @@ class SpotifyHandler
   constructor: (options) ->
     @spotify = options.spotify
     @config = options.config
+    @storage = options.storage
+    @storage.initSync()
 
     @connect_timeout = null
     @connected = false
@@ -9,17 +11,20 @@ class SpotifyHandler
     # "playing" in this context means actually playing music or being currently paused (but NOT stopped).
     # This is an important distinction regarding the functionality of @spotify.player.resume().
     @playing = false
-    # Whether we're SHUFFLING ERRYDAY or not.
-    @shuffle = false
-    # Current state
-    @current_track = null
-    @current_track_index = 0
-    @current_track_name = null
-    @current_track_artists = null
-    @current_playlist = {
-      name: null,
-      playlist: null
+
+    @state = {
+      shuffle: false
+      track:
+        object: null
+        index: 0
+        name: null
+        artists: null
+      playlist:
+        name: null
+        object: null
     }
+
+    @playlists = @storage.getItem('playlists') || {}
 
     @spotify.on
       ready: @spotify_connected.bind(@)
@@ -42,9 +47,15 @@ class SpotifyHandler
     @connected = true
     clearTimeout @connect_timeout
     @connect_timeout = null
-    if @current_playlist.name?
+
+    # If we already have a set playlist (i.e. we were reconnecting), just keep playing.
+    if @state.playlist.name?
       @play()
-    else
+    # If we started fresh, get the one that we used last time
+    else if last_playlist = @storage.getItem 'last_playlist'
+      @set_playlist last_playlist
+    # If that didn't work, try one named "default"
+    else if @playlists.default?
       @set_playlist 'default'
     return
 
@@ -61,8 +72,8 @@ class SpotifyHandler
   # Simply replaces the current playlist-instance with the new one and re-bind events.
   # Player-internal state (number of tracks in the playlist, current index, etc.) is updated on @get_next_track().
   update_playlist: (err, playlist, tracks, position) ->
-    @current_playlist.playlist = playlist
-    @current_playlist.playlist.on
+    @state.playlist.object = playlist
+    @state.playlist.object.on
       tracksAdded: @update_playlist.bind(this)
       tracksRemoved: @update_playlist.bind(this)
     return
@@ -104,8 +115,7 @@ class SpotifyHandler
         when 'string'
           # Links from Slack are encased like this: <spotify:track:1kl0Vn0FO4bbdrTbHw4IaQ>
           # So we remove everything that is neither char, number or a colon.
-          track_or_link = track_or_link.replace /[^0-9a-zA-Z:]/g, ''
-          new_track = @spotify.createFromLink track_or_link
+          new_track = @spotify.createFromLink @_sanitize_link(track_or_link)
           # If the track was somehow invalid, don't do anything
           return if !new_track?
         # We also use this to internally trigger playback of already-loaded tracks
@@ -132,13 +142,13 @@ class SpotifyHandler
 
   # Handles the actual playback once the track object has been loaded from Spotify
   _play_callback: (track) ->
-    @current_track = track
-    @current_track_name = @current_track.name
-    @current_track_artists = @current_track.artists.map((artist) ->
+    @state.track.object = track
+    @state.track.name = @state.track.object.name
+    @state.track.artists = @state.track.object.artists.map((artist) ->
       artist.name
     ).join ", "
 
-    @spotify.player.play @current_track
+    @spotify.player.play @state.track.object
     @playing = true
     return
 
@@ -146,38 +156,65 @@ class SpotifyHandler
   # Gets the next track from the playlist.
   get_next_track: ->
     if @shuffle
-      @current_track_index = Math.floor(Math.random() * @current_playlist.playlist.numTracks)
+      @state.track.index = Math.floor(Math.random() * @state.playlist.object.numTracks)
     else
-      @current_track_index = ++@current_track_index % @current_playlist.playlist.numTracks
-    @current_playlist.playlist.getTrack(@current_track_index)
+      @state.track.index = ++@state.track.index % @state.playlist.object.numTracks
+    @state.playlist.object.getTrack(@state.track.index)
 
 
   # Changes the current playlist and starts playing.
   # Since the playlist might have loaded before we can attach our callback, the actual playlist-functionality
   # is extracted to _set_playlist_callback which we call either directly or delayed once it has loaded.
-  set_playlist: (name = 'default') ->
-    if @config.playlists[name]?
-      playlist = @spotify.createFromLink @config.playlists[name]
+  set_playlist: (name) ->
+    if @playlists[name]?
+      playlist = @spotify.createFromLink @playlists[name]
       if playlist && playlist.isLoaded
         @_set_playlist_callback name, playlist
       else if playlist
         @spotify.waitForLoaded [playlist], (playlist) =>
           @_set_playlist_callback name, playlist
-          return
-    return
+          return true
+    return true
 
 
   # The actual handling of the new playlist once it has been loaded.
   _set_playlist_callback: (name, playlist) ->
-    @current_playlist.name = name
-    @current_playlist.playlist = playlist
-    @current_playlist.playlist.on
+    @state.playlist.name = name
+    @state.playlist.object = playlist
+    @state.playlist.object.on
       tracksAdded: @update_playlist.bind(this)
       tracksRemoved: @update_playlist.bind(this)
-    @current_track_index = 0
-    @play @current_playlist.playlist.getTrack @current_track_index
+    @state.track.index = 0
+    @play @state.playlist.object.getTrack @state.track.index
+    # Also store the name as our last_playlist for the next time we start up
+    @storage.setItem 'last_playlist', name
     return
 
+  # Adds a playlist to the storage and updates our internal list
+  add_playlist: (name, spotify_url) ->
+    return false if !name? || !spotify_url? || !spotify_url.match(/spotify:user:.*:playlist:[0-9a-zA-Z]+/)
+    spotify_url = @_sanitize_link spotify_url.match(/spotify:user:.*:playlist:[0-9a-zA-Z]+/g)[0]
+    @playlists[name] = spotify_url
+    @storage.setItem 'playlists', @playlists
+    return true
+
+  remove_playlist: (name) ->
+    return false if !name? || !@playlists[name]?
+    delete @playlists[name]
+    @storage.setItem 'playlists', @playlists
+    return true
+
+  rename_playlist: (old_name, new_name) ->
+    return false if !old_name? || !new_name? || !@playlists[old_name]?
+    @playlists[new_name] = @playlists[old_name]
+    delete @playlists[old_name]
+    @storage.setItem 'playlists', @playlists
+    return true
+
+
+  # Removes Everything that shouldn't be in a link, especially Slack's <> encasing
+  _sanitize_link: (link) ->
+    link.replace /[^0-9a-zA-Z:#]/g, ''
 
 
 # export things

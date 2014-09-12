@@ -19,8 +19,9 @@ module.exports = () ->
   AuthHandler = require('../auth_handler')(Config.auth);
   VolumeHandler = require('../volume_handler')();
   SpotifyHandler = require('../spotify_handler')({
-    spotify: Spotify({ appkeyFile: appkey_path  })
+    spotify: Spotify { appkeyFile: appkey_path  }
+    storage: require 'node-persist'
     config: Config.spotify
   })
 
-  return require('./handler')(AuthHandler, SpotifyHandler, VolumeHandler)
+  return require('./request_handler')(AuthHandler, SpotifyHandler, VolumeHandler)

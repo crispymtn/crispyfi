@@ -1,3 +1,4 @@
 cache/*
 settings/*
 node_modules/*
+persist/*
