@@ -25,10 +25,13 @@ class SlackInterfaceRequestHandler
                 reply_data['text'] = if @spotify.shuffle then "ERRYDAY I'M SHUFFLING." else "I am no longer shuffling. Thanks for ruining my fun."
 
               when 'vol'
-                switch @auth.args[0]
-                  when "up" then @volume.up()
-                  when "down" then @volume.down()
-                  else @volume.set @auth.args[0]
+                if @auth.args[0]?
+                  switch @auth.args[0]
+                    when "up" then @volume.up()
+                    when "down" then @volume.down()
+                    else @volume.set @auth.args[0]
+                else
+                  reply_data['text'] = "Current Volume: *#{@volume.current_step}*"
 
               when 'list'
                 if @auth.args[0]?
