@@ -3,6 +3,7 @@ class SlackInterfaceRequestHandler
     @auth = auth
     @spotify = spotify
     @volume = volume
+    @plugin_handler = require("../../lib/plugin_handler")()
 
     @endpoints =
       handle:
@@ -58,6 +59,11 @@ class SlackInterfaceRequestHandler
               when 'help'
                 reply_data['text'] = "You seem lost. Maybe trying one of these commands will help you out:\n*play* [Spotify-URI] - Starts or resumes playback. If you provide a Spotify-URI it will be played immediately.\n*stop* - Stops playback.\n*pause* - Pauses playback (can be resumed using *play*).\n*skip*: Skips to the next track.\n*list* [listname] - Switches to the specified Spotify-Playlist. If no list name is provided, all available lists will be shown. Playlists need to be configured beforehand, please check the project's readme for details.\n*vol* [up|down|0-10] - Sets the output volume. Either goes up or down one notch or directly to a level ranging from 0 to 10 (inclusive). 0 is mute."
 
+              else
+                # Fallback to external plugins.
+                status = @plugin_handler.handle(@auth, @spotify, @volume)
+                if status?
+                  reply_data['text'] = status
 
             response.serveJSON reply_data
             return

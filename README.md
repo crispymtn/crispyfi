@@ -76,6 +76,11 @@ CrispyFi provides a command line-like interface to its internal playlist handlin
 * `list rename <old name> <new name>` - Renames the specified list.
 * `list <name>` - Selects the specified list and starts playback.
 
+## Plugins
+If CrispyFi doesn't do what you need, you can extend it. The plugin architecture is pretty minimal at this point, but at least there's a standardized interface. If none of the default trigger words matched, each plugin's `handle` method will be called until one is found that returns `true`. If a plugin returns `true`, the plugin chain is halted and the plugin's `status` attribute is checked for content. If it's not empty, its content will be replied to the Slack channel CrispyFi listens to. If it's empty, nothing further will happen (the plugin chain will *not* be traversed further, though).
+
+Plugins live in `/plugins` and need a `name` attribute. A minimal example implementation is provided in `examples/my_first_plugin.coffee`.
+
 ## Getting your groove on(line)
 Since your Pi will probably be behind a firewall/some sort of NAT or have a dynamic IP, you'll have difficulties tying Slack's webhooks to its IP address. We're currently using [ngrok](http://ngrok.com) to get around that, mainly because it's awesome and makes developing web services much easier. Also, using ngrok you avoid the hassle of updating some other service's configuration whenever your IP changes, instead you have to run a small binary all the time. YMMV, so use whatever you're comfortable with (but give ngrok a try).
 
