@@ -19,7 +19,7 @@ class SlackInterfaceRequestHandler
               when 'pause' then @spotify.pause()
               when 'stop' then @spotify.stop()
               when 'skip' then @spotify.skip()
-              when 'reconnect' then @spotify.reconnect()
+              when 'reconnect' then @spotify.connect()
 
               when 'shuffle'
                 @spotify.toggle_shuffle()
