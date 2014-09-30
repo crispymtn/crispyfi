@@ -14,7 +14,6 @@ class VolumeHandler
     vol = @step_to_volume step
     @exec('amixer sset PCM,0 ' + vol + '%', (error, stdout, stderr) -> )
     @current_step = step
-    # console.info "Set current volume to #{vol}% / Step #{@current_step}"
 
   up: () ->
     @set @current_step+1

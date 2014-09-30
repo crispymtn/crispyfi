@@ -10,6 +10,9 @@ class PluginHandler
     console.log "Loading Plugins..."
     root_dir = require('path').dirname require.main.filename
     require("fs").readdirSync("#{root_dir}/plugins").forEach (file) =>
+      # We only want javascript or coffee files
+      return if file.substr(-3) != '.js' && file.substr(-7) != '.coffee'
+
       plugin = require("#{root_dir}/plugins/" + file)()
       @plugins.push plugin
       console.log " -- #{plugin.name}"

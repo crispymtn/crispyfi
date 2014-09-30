@@ -30,7 +30,7 @@ class SpotifyHandler
       ready: @spotify_connected.bind(@)
       logout: @spotify_disconnected.bind(@)
     @spotify.player.on
-      endOfTrack: @skip.bind(this)
+      endOfTrack: @skip.bind(@)
 
     # And off we got
     @connect()
@@ -72,6 +72,9 @@ class SpotifyHandler
   # Simply replaces the current playlist-instance with the new one and re-bind events.
   # Player-internal state (number of tracks in the playlist, current index, etc.) is updated on @get_next_track().
   update_playlist: (err, playlist, tracks, position) ->
+    if @state.playlist.object?
+      # Remove event handlers from the old playlist
+      @state.playlist.object.off()
     @state.playlist.object = playlist
     @state.playlist.object.on
       tracksAdded: @update_playlist.bind(this)
@@ -180,12 +183,12 @@ class SpotifyHandler
   # The actual handling of the new playlist once it has been loaded.
   _set_playlist_callback: (name, playlist) ->
     @state.playlist.name = name
-    @state.playlist.object = playlist
-    @state.playlist.object.on
-      tracksAdded: @update_playlist.bind(this)
-      tracksRemoved: @update_playlist.bind(this)
+
+    # Update our internal state
+    @update_playlist null, playlist
+
     @state.track.index = 0
-    @play @state.playlist.object.getTrack @state.track.index
+    @play @state.playlist.object.getTrack(@state.track.index)
     # Also store the name as our last_playlist for the next time we start up
     @storage.setItem 'last_playlist', name
     return
