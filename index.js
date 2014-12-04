@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Enable CoffeeScript
 require('coffee-script/register');
 // Application config
