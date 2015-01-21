@@ -54,7 +54,7 @@ text=<trigger_word> <argument>
 
 Currently the following trigger words are available:
 
-* `play [Spotify URI]` - Starts/resumes playback if no URI is provided. If a URI is given, immedtiately switches to the linked track.
+* `play [Spotify URI]` - Starts/resumes playback if no URI is provided. If a URI is given, immediately switches to the linked track.
 * `pause` - Pauses playback at the current time.
 * `stop` - Stops playback and resets to the beginning of the current track.
 * `skip` - Skips (or shuffles) to the next track in the playlist.
@@ -62,7 +62,7 @@ Currently the following trigger words are available:
 * `vol [up|down|0..10]` Turns the volume either up/down one notch or directly to a step between 0 (mute) and 10 (full blast). Also goes to eleven.
 * `list [command] [options]` - See playlists section below.
 * `status` - Shows the currently playing song, playlist and whether you're shuffling or not.
-* `help` - Shows a list of commands with a short explaantion.
+* `help` - Shows a list of commands with a short explanation.
 
 If you're using Slack integrations, simply create an outgoing webhook to `http://your-crispyfi-url/handle` that listens to the appropriate trigger words. See below for an example screenshot of our setup. To disable certain funtions, just remove the trigger word.
 

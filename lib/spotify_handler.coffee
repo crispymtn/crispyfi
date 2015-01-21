@@ -11,6 +11,7 @@ class SpotifyHandler
     # "playing" in this context means actually playing music or being currently paused (but NOT stopped).
     # This is an important distinction regarding the functionality of @spotify.player.resume().
     @playing = false
+    @paused = false
 
     @state = {
       shuffle: false
@@ -84,6 +85,7 @@ class SpotifyHandler
 
   # Pauses playback at the current time. Can be resumed by calling @play().
   pause: ->
+    @paused = true
     @spotify.player.pause()
     return
 
@@ -93,6 +95,7 @@ class SpotifyHandler
   # Call @play() to start playing again.
   stop: ->
     @playing = false
+    @paused = false
     @spotify.player.stop()
     return
 
@@ -108,9 +111,19 @@ class SpotifyHandler
     @shuffle = !@shuffle
 
 
-  # Either starts playing the current track (or next one, if none is set) or immediately
+  is_playing: ->
+    return @playing
+
+
+  is_paused: ->
+    return @paused
+
+
+  # Either starts
+   the current track (or next one, if none is set) or immediately
   # plays the provided track or link.
   play: (track_or_link=null) ->
+    @paused = false
     # If a track is given, immediately switch to it
     if track_or_link?
       switch typeof track_or_link
