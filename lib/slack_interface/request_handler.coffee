@@ -15,12 +15,19 @@ class SlackInterfaceRequestHandler
             reply_data = { ok: true }
 
             switch @auth.command
-              when 'play' then @spotify.play @auth.args[0]
               when 'pause' then @spotify.pause()
               when 'stop' then @spotify.stop()
               when 'skip' then @spotify.skip()
               when 'reconnect' then @spotify.connect()
               when 'restart' then process.exit 1
+              when 'mute' then @volume.set 0
+              when 'unmute' then @volume.set 5
+
+              when 'play'
+                if @auth.args[0]?
+                    @spotify.play @auth.args[0]
+                else
+                    @spotify.play()
 
               when 'shuffle'
                 @spotify.toggle_shuffle()
@@ -45,20 +52,24 @@ class SlackInterfaceRequestHandler
                   if status
                     reply_data['text'] = 'Ok.'
                   else
-                    reply_data['text'] = "I don't understand. Please consult the manual or cry for help."
+                    reply_data['text'] = "I don't understand. Please consult the manual or cry for `help`."
                 else
                   str = 'Currently available playlists:'
                   for key of @spotify.playlists
                     str += "\n*#{key}* (#{@spotify.playlists[key]})"
                   reply_data['text'] = str
 
-
               when 'status'
                 shuffleword = if @spotify.shuffle then '' else ' not'
-                reply_data['text'] = "You are currently letting your ears feast on the beautiful tunes titled *#{@spotify.state.track.name}* from *#{@spotify.state.track.artists}*.\nYour currently selected playlist, which you are#{shuffleword} shuffling through, is named *#{@spotify.state.playlist.name}*."
+                if @spotify.is_paused()
+                  reply_data['text'] = "Playback is currently *paused* on a song titled *#{@spotify.state.track.name}* from *#{@spotify.state.track.artists}*.\nYour currently selected playlist, which you are#{shuffleword} shuffling through, is named *#{@spotify.state.playlist.name}*. Resume playback with `play`."
+                else if !@spotify.is_playing()
+                  reply_data['text'] = "Playback is currently *stopped*. You can start it again by choosing an available `list`."
+                else
+                  reply_data['text'] = "You are currently letting your ears feast on the beautiful tunes titled *#{@spotify.state.track.name}* from *#{@spotify.state.track.artists}*.\nYour currently selected playlist, which you are#{shuffleword} shuffling through, is named *#{@spotify.state.playlist.name}*."
 
               when 'help'
-                reply_data['text'] = "You seem lost. Maybe trying one of these commands will help you out:\n*play* [Spotify-URI] - Starts or resumes playback. If you provide a Spotify-URI it will be played immediately.\n*stop* - Stops playback.\n*pause* - Pauses playback (can be resumed using *play*).\n*skip*: Skips to the next track.\n*list* [listname] - Switches to the specified Spotify-Playlist. If no list name is provided, all available lists will be shown. Playlists need to be configured beforehand, please check the project's readme for details.\n*vol* [up|down|0-10] - Sets the output volume. Either goes up or down one notch or directly to a level ranging from 0 to 10 (inclusive). 0 is mute."
+                reply_data['text'] = "You seem lost. Here is a list of commands that are available to you:   \n   \n*Commands*\n> `play [Spotify URI]` - Starts/resumes playback if no URI is provided. If a URI is given, immediately switches to the linked track.\n> `pause` - Pauses playback at the current time.\n> `stop` - Stops playback and resets to the beginning of the current track.\n> `skip` - Skips (or shuffles) to the next track in the playlist.\n> `shuffle` - Toggles shuffle on or off.\n> `vol [up|down|0..10]` Turns the volume either up/down one notch or directly to a step between `0` (mute) and `10` (full blast). Also goes to `11`.\n> `mute` - Same as `vol 0`.\n> `unmute` - Same as `vol 0`.\n> `status` - Shows the currently playing song, playlist and whether you're shuffling or not.\n> `help` - Shows a list of commands with a short explanation.\n   \n*Playlists*\n> `list add <name> <Spotify URI>` - Adds a list that can later be accessed under <name>.\n> `list remove <name>` - Removes the specified list.\n> `list rename <old name> <new name>` - Renames the specified list.\n> `list <name>` - Selects the specified list and starts playback."
 
               else
                 # Fallback to external plugins.
@@ -75,4 +86,3 @@ class SlackInterfaceRequestHandler
 module.exports = (auth, spotify, volume) ->
   handler = new SlackInterfaceRequestHandler(auth, spotify, volume)
   return handler.endpoints
-
