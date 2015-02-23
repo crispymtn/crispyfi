@@ -119,8 +119,7 @@ class SpotifyHandler
     return @paused
 
 
-  # Either starts
-   the current track (or next one, if none is set) or immediately
+  # Either starts the current track (or next one, if none is set) or immediately
   # plays the provided track or link.
   play: (track_or_link=null) ->
     @paused = false

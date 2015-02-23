@@ -1,7 +1,7 @@
 {
   "spotify": {
     "username": "Spotify Username",
-    "password": "Spotify Password",
+    "password": "Spotify Password"
   },
   "auth": {
     "tokens": [
