@@ -163,8 +163,14 @@ class SpotifyHandler
       artist.name
     ).join ", "
 
-    @spotify.player.play @state.track.object
-    @playing = true
+    # If a track is not playable (Region block, etc.), skip to the next one.
+    # If the entire playlist is full of non-playable tracks, you are out of luck for now.
+    try {
+      @spotify.player.play @state.track.object
+      @playing = true
+    } catch(e) {
+      @skip()
+    }
     return
 
 
