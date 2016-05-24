@@ -229,7 +229,7 @@ class SpotifyHandler
 
   # Removes Everything that shouldn't be in a link, especially Slack's <> encasing
   _sanitize_link: (link) ->
-    link.replace /[^0-9a-zA-Z:#]/g, ''
+    link.replace /[^0-9a-zA-Z:#\.]/g, ''
 
 
 # export things
